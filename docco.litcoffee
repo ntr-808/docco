@@ -101,14 +101,20 @@ out in an HTML template.
 
         nextFile = ->
           source = files.shift()
-          fs.readFile source, (error, buffer) ->
-            return callback error if error
 
-            code = buffer.toString()
-            sections = parse source, code, config
-            format source, sections, config
-            write source, sections, config
-            if files.length then nextFile() else complete()
+          fs.stat source, (error, stat) ->
+            if stat.isDirectory()
+              console.log("docco: skipped directory (#{source})")
+              return nextFile()
+
+            fs.readFile source, (error, buffer) ->
+              return callback error if error
+
+              code = buffer.toString()
+              sections = parse source, code, config
+              format source, sections, config
+              write source, sections, config
+              if files.length then nextFile() else complete()
 
         nextFile()
 
@@ -314,7 +320,8 @@ A function to get the current language we're documenting, based on the
 file extension. Detect and tag "literate" `.ext.md` variants.
 
     getLanguage = (source, config) ->
-      ext  = config.extension or path.extname(source) or path.basename(source)
+      # ext  = path.extname(source) or path.basename(source) or config.extension
+      ext  = path.extname(source) or config.extension
       lang = config.languages?[ext] or languages[ext]
       if lang and lang.name is 'markdown'
         codeExt = path.extname(path.basename(source, ext))
